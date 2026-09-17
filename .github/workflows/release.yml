@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
 
 jobs:
   release:
@@ -16,11 +17,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '21'
+
+      - name: Clean Local Properties
+        run: |
+          sed -i '/org.gradle.java.home/d' gradle.properties || true
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -29,7 +34,6 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Build APK
-        # If release keystore is absent, assembleRelease produces an unsigned APK or assembleDebug can be packaged
         run: |
           ./gradlew assembleRelease --stacktrace || ./gradlew assembleDebug --stacktrace
           
@@ -38,6 +42,10 @@ jobs:
           echo "Found APK at $APK_PATH"
           
           TAG_NAME="${{ github.ref_name }}"
+          if [ -z "$TAG_NAME" ] || [ "$TAG_NAME" = "main" ]; then
+            TAG_NAME="v1.0.0"
+          fi
+          
           RELEASE_APK="CatGuard-${TAG_NAME}.apk"
           cp "$APK_PATH" "$RELEASE_APK"
           
@@ -46,11 +54,13 @@ jobs:
           
           echo "RELEASE_APK=$RELEASE_APK" >> $GITHUB_ENV
           echo "CHECKSUM_FILE=${RELEASE_APK}.sha256" >> $GITHUB_ENV
+          echo "RELEASE_TAG=$TAG_NAME" >> $GITHUB_ENV
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: CatGuard ${{ github.ref_name }}
+          name: CatGuard ${{ env.RELEASE_TAG }}
+          tag_name: ${{ env.RELEASE_TAG }}
           draft: false
           prerelease: false
           generate_release_notes: true
