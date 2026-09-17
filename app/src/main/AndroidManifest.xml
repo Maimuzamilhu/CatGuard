@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- The whole point of the app: watch the camera for cats. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+
+    <!-- Keeps the camera and the detector alive with the app closed. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+
+    <!-- Android 14+ requires the specific foreground-service type to be requested. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
+
+    <!-- Android 13+ requires this before the "Monitoring for cats" notification can show.
+         Monitoring still works if it is denied; only the notification is hidden. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- Keeps the CPU running while the screen is off. The phone is expected to be
+         on a charger; without this the analysis thread is suspended and nothing is seen. -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
+    <!-- NOTE: there is deliberately no INTERNET permission. CatGuard cannot upload
+         anything, by construction rather than by promise. -->
+
+    <!-- The TensorFlow Lite Task library ships a manifest with no targetSdkVersion,
+         which makes the manifest merger *imply* these three legacy permissions on
+         our behalf. The app never touches external storage or telephony state, and
+         READ_PHONE_STATE in particular looks alarming to anyone who checks the
+         permission list, so they are removed explicitly rather than shipped.
+         Verify after changing this with:
+           aapt2 dump badging app-debug.apk | findstr uses-permission -->
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" tools:node="remove" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" tools:node="remove" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" tools:node="remove" />
+
+    <uses-feature android:name="android.hardware.camera.any" android:required="true" />
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
+
+    <application
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.CatGuard">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.CatGuard">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <service
+            android:name=".service.CatGuardService"
+            android:exported="false"
+            android:foregroundServiceType="camera" />
+    </application>
+</manifest>
